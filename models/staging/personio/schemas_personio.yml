@@ -1,0 +1,26 @@
+version: 2
+
+models:
+
+## PERSONIO
+
+  - name: staging_personio_employees
+    description: Contains information on Solytic employees
+    tests:
+      - valid_from_and_to_dates
+    columns:
+      - name: EMPLOYEE_NAME
+        meta:
+          masking_policy: mp_encrypt_pii
+      - name: EMPLOYEE_ID
+        tests:
+          - valid_from_and_to_dates_gap
+      - name: VALID_FROM
+        tests:
+          - not_null
+      - name: VALID_TO
+        tests:
+          - not_null
+      - name: ACTIVE_INDICATOR
+        tests:
+          - not_null

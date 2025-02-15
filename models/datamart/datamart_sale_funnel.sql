@@ -1,0 +1,111 @@
+{{ config(
+    tags=["deals"]
+) }}
+
+WITH Relevant_stages AS (	-- NOTE: SELECT relevant deals AND apply historized STAGE names
+
+	SELECT DEAL_SK
+		, DEAL_STAGE_NAME
+		, VALID_FROM
+		, VALID_TO
+		, LAG(DEAL_STAGE_NAME) OVER (PARTITION BY DEAL_SK ORDER BY VALID_FROM, VALID_TO)		AS PREVIOUS_STAGE
+		, ROW_NUMBER () OVER (PARTITION BY DEAL_SK ORDER BY VALID_FROM, VALID_TO) 	AS RN_			-- Required FOR islands/gap
+	FROM {{ ref('core_dim_deal') }} SHD
+
+
+)
+
+, DEAL_ISLANDS AS ( -- NOTE: DEALS CAN LOOP THROUGH THE SAME STAGES MULTIPLE TIMES. THEREFORE THE ISLAND/GAP METHOD IS APPLIED TO INDICATE THE ISLANDS
+
+	SELECT DEAL_SK
+		, DEAL_STAGE_NAME
+		, VALID_FROM
+		, VALID_TO
+		, SUM(IFF(PREVIOUS_STAGE = DEAL_STAGE_NAME, 0, 1)) OVER (PARTITION BY DEAL_SK ORDER BY RN_) 	AS ISLAND_ID
+	FROM Relevant_stages
+
+)
+, subset AS (
+
+SELECT *
+FROM (
+
+	SELECT DEAL_SK
+		-- IFF STAGE doesn't exist, add first_date + NULL, otherwise the max valid_from
+		, IFNULL(MAX(IFF(STAGE_ORDER = 2 , VALID_FROM, NULL))::TEXT, CONCAT(MAX(iff(2 <= MAX_STAGE, FIRST_DATE, NULL))::TEXT, ' NULL'))		AS "Marketing Qualified Lead"
+		, IFNULL(MAX(IFF(STAGE_ORDER = 3 , VALID_FROM, NULL))::TEXT, CONCAT(MAX(iff(3 <= MAX_STAGE, FIRST_DATE, NULL))::TEXT, ' NULL'))		AS "Sales Qualified Lead"
+		, IFNULL(MAX(IFF(STAGE_ORDER = 4 , VALID_FROM, NULL))::TEXT, CONCAT(MAX(iff(4 <= MAX_STAGE, FIRST_DATE, NULL))::TEXT, ' NULL'))		AS "Dealmaking"
+		, IFNULL(MAX(IFF(STAGE_ORDER = 5 , VALID_FROM, NULL))::TEXT, CONCAT(MAX(iff(5 <= MAX_STAGE, FIRST_DATE, NULL))::TEXT, ' NULL'))		AS "Offer Sent"
+		, IFNULL(MAX(IFF(STAGE_ORDER = 7 , VALID_FROM, NULL))::TEXT, CONCAT(MAX(iff(7 <= MAX_STAGE, FIRST_DATE, NULL))::TEXT, ' NULL'))		AS "Won"
+	FROM (
+		-- NOTE: SELECT CORRECT DEALS
+
+		SELECT cFD.DEAL_SK													AS DEAL_SK
+			, CFD.DEAL_STAGE_NAME 											AS DEAL_STAGE
+			, CASE CFD.DEAL_STAGE_NAME
+				WHEN 'Marketing Qualified Lead'		THEN 2
+				WHEN 'Sales Qualified Lead'			THEN 3
+				WHEN 'Dealmaking'					THEN 4
+				WHEN 'Offer Sent'					THEN 5
+				WHEN 'Won'							THEN 7
+				ELSE NULL				END								AS STAGE_ORDER
+			, MAX(STAGE_ORDER) OVER (PARTITION BY cfd.DEAL_SK)	AS MAX_STAGE
+			, cfd.VALID_FROM ::date											AS VALID_FROM
+			, MIN(cfd.VALID_FROM) OVER (PARTITION BY cfd.DEAL_SK)::date		AS FIRST_DATE
+			FROM (
+				SELECT
+					DEAL_SK
+					, DEAL_STAGE_NAME
+					, MIN(VALID_FROM) 		AS VALID_FROM
+					, ISLAND_ID
+				FROM DEAL_ISLANDS
+				GROUP BY
+					DEAL_SK
+					, DEAL_STAGE_NAME
+					, ISLAND_ID
+				)  cfd
+		LEFT JOIN 	{{ ref('core_dim_date') }} dd ON cfd.VALID_FROM::DATE = DD.DATE_KEY
+		WHERE CFD.DEAL_STAGE_NAME IN ('Marketing Qualified Lead','Sales Qualified Lead', 'Dealmaking', 'Offer Sent', 'Won')
+
+
+		) a
+	WHERE STAGE_ORDER IS NOT NULL
+	GROUP BY DEAL_SK
+
+	)
+unpivot( NEW_VALID_FROM FOR STAGES IN ("Marketing Qualified Lead"
+		,"Sales Qualified Lead"
+		,"Dealmaking"
+		,"Offer Sent"
+		,"Won"
+		)
+	)
+
+) -- END CTE subset
+
+SELECT DEAL_SK
+	, STAGES
+	, VALID_FROM
+	, STAGE_ORDER
+	, IFF(NEW_VALID_FROM LIKE '%NULL', NULL, DENSE_RANK() OVER (PARTITION BY DEAL_SK ORDER BY ACTUAL_DATE_ORDER)) 	AS DATE_INDICATOR
+FROM (
+SELECT DEAL_SK
+	, STAGES
+	, NEW_VALID_FROM
+	, TRY_TO_DATE(SPLIT_PART(NEW_VALID_FROM, ' NULL', 1)) 	AS VALID_FROM
+	, CASE
+			WHEN STAGES = 'Marketing Qualified Lead'	THEN 1
+			WHEN STAGES = 'Sales Qualified Lead'		THEN 2
+			WHEN STAGES = 'Dealmaking'		 			THEN 3
+			WHEN STAGES = 'Offer Sent'		 			THEN 4
+			WHEN STAGES = 'Won'	 						THEN 5
+	END		AS STAGE_ORDER
+	, IFF(NEW_VALID_FROM LIKE '%NULL', NULL, CASE
+			WHEN STAGES = 'Marketing Qualified Lead'	THEN 1
+			WHEN STAGES = 'Sales Qualified Lead'		THEN 2
+			WHEN STAGES = 'Dealmaking'		 			THEN 3
+			WHEN STAGES = 'Offer Sent'		 			THEN 4
+			WHEN STAGES = 'Won'	 						THEN 5
+	END	) AS ACTUAL_DATE_ORDER
+FROM subset
+)

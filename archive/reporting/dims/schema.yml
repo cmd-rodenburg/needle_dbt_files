@@ -1,0 +1,43 @@
+version: 2
+
+models:
+
+  - name: dim_companies
+    description: Contains information on Hubspot companies
+    columns:
+      - name: id
+        tests:
+          - unique
+          - not_null
+
+  - name: dim_dates
+    description: Contains metadata on dates since 2020-01-01
+    columns:
+      - name: date_id
+        tests:
+          - unique
+          - not_null
+
+  - name: dim_owners
+    description: Contains information on Hubspot owners
+    columns:
+      - name: id
+        tests:
+          - unique
+          - not_null
+
+  - name: dim_pipeline_stages
+    description: Contains information on Hubspot pipeline stages
+    columns:
+      - name: id
+        tests:
+          - unique
+          - not_null
+
+  - name: dim_pipelines
+    description: Contains information on Hubspot pipelines
+    columns:
+      - name: id
+        tests:
+          - unique
+          - not_null

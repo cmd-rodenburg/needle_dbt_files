@@ -1,0 +1,17 @@
+version: 2
+
+models:
+
+    - name: interim_churn_by_day
+      columns:
+        - name: date_customer_id
+          tests:
+            - unique
+            - not_null
+
+    - name: interim_recurring_revenue_by_day
+      columns:
+        - name: date_customer_id
+          tests:
+            - unique
+            - not_null

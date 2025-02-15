@@ -1,0 +1,16 @@
+
+
+SELECT IFNULL(si.COMPANY_SK, -1)	 		AS COMPANY_SK
+    , cdd.MONTH_FIRST_DAY   				AS DATE_KEY
+	, SUM(DATASOURCES)       				AS DATASOURCES
+    , SUM(si.PROCESSING_DURATION_SEC	)	AS PROCESSING_DURATION_SEC
+	, SUM(si.DATA_SIZE_GB          	)		AS DATA_SIZE_GB
+	, SUM(si.ENTRIES)						AS INGESTIONS
+FROM {{ ref('core_fact_site_ingestions') }} si
+LEFT JOIN {{ ref('core_dim_date') }} 		cdd ON si.DATE_KEY = cdd.DATE_KEY
+GROUP BY IFNULL(si.COMPANY_SK, -1)
+	, cdd.MONTH_FIRST_DAY
+
+
+
+

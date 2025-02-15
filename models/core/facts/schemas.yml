@@ -1,0 +1,34 @@
+version: 2
+
+models:
+
+  - name: core_fact_revenue_invoiced
+    description: Fact table of all Sevdesk invoices (line item level)
+    quote: true
+    columns:
+      - name: TOTAL_AMOUNT
+        tests:
+          # NOTE: TEST FOR INVOICE AMOUNT = 0; EXCLUDE CANCELLATION INVOICES AND TEST INVOICE (RE-1000)
+          - dbt_expectations.expect_column_sum_to_be_between:
+              min_value: 0
+              group_by: [INVOICE_NUMBER]
+              row_condition: "INVOICE_NUMBER != 'RE-1000'"
+              strictly: True
+      - name: INVOICE_NUMBER
+        tests:
+          # NOTE: INVOICE NUMBER SHOULD NOT BE BETWEEN 4 AND 8 CHARACTERS. IF THEY ARE LONGER A MISTAKE MIGHT HAVE HAPPENED)
+          - dbt_expectations.expect_column_value_lengths_to_be_between:
+              min_value: 4
+              max_value: 7
+              config:
+                severity: warn
+  - name: core_fact_revenue_contracted
+    description: Hubspot line items over time
+    tests:
+      - valid_from_and_to_dates
+    columns:
+      - name: LINE_ITEM_ID
+        tests:
+        # NOTE: TIME USAGE AS THE VALID_TO DATE IS EQUAL TO THE NEXT VALID_FROM DATE FOR NOW
+        - valid_from_and_to_times_gap
+        - not_null

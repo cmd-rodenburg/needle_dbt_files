@@ -1,0 +1,19 @@
+version: 2
+
+models:
+
+  - name: ticket_associations
+    description: Tickets and other Hubspot entities can be associated in n-to-n relationships. This table maps those relationships.
+    tests:
+      - unique:
+          column_name: CONCAT_WS('~~~', ticket_id, object_type, object_id)
+    columns:
+      - name: ticket_id
+        tests:
+          - not_null
+      - name: object_type
+        tests:
+          - not_null
+      - name: object_id
+        tests:
+          - not_null

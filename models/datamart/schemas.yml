@@ -1,0 +1,17 @@
+version: 2
+
+models:
+
+  - name: datamart_ticket_working_time
+    description: Calculation of closing and first contact time inside solytic service period
+    quote: true
+    columns:
+      - name: TICKET_SK
+        tests:
+          - unique
+
+  - name: datamart_revenue_invoiced_recurring
+    description: Recurring invoiced revenue
+    tests:
+      - valid_from_and_to_dates
+    quote: true

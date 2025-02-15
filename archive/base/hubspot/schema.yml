@@ -1,0 +1,96 @@
+version: 2
+
+models:
+
+    - name: base_hs_companies
+      description: "Hubspot Companies snapshots"
+      tests:
+        - unique:
+            column_name: concat(id, valid_to)
+      columns:
+        - name: id
+          description: "The primary key for this table (however: not unique! as the same company may occur multiple times, once for each updated version)"
+          tests:
+              - not_null
+
+    - name: base_hs_deals
+      description: "Hubspot Deals snapshots"
+      tests:
+        - unique:
+            column_name: concat(id, valid_to)
+      columns:
+        - name: id
+          description: "The primary key for this table (however: not unique! as the same deal may occur multiple times, once for each updated version)"
+          tests:
+              - not_null
+
+    - name: base_hs_engagements
+      description: "Hubspot engagements (aka activities)"
+      columns:
+        - name: id
+          description: "The primary key for this table"
+          tests:
+            - unique
+            - not_null
+
+    - name: base_hs_owners
+      description: "Hubspot owners snapshots"
+      tests:
+        - unique:
+            column_name: concat(id, valid_to)
+      columns:
+        - name: id
+          description: "The primary key for this table (however: not unique! as the same owner may occur multiple times, once for each updated version)"
+          tests:
+              - not_null
+
+    - name: base_hs_pipeline_stages
+      description: "Hubspot pipeline stages"
+      columns:
+        - name: id
+          description: "The primary key for this table"
+          tests:
+            - unique
+            - not_null
+
+    - name: base_hs_pipelines
+      description: "Hubspot pipelines"
+      columns:
+        - name: id
+          description: "The primary key for this table"
+          tests:
+            - unique
+            - not_null
+
+    - name: base_hs_properties
+      description: "Hubspot Properties Snapshots"
+      tests:
+        - unique:
+            column_name: concat(id, valid_to)
+      columns:
+        - name: id
+          description: "The primary key for this table (however: not unique! as the same property may occur multiple times, once for each updated version)"
+          tests:
+              - not_null
+
+    - name: base_hs_tickets
+      description: "Hubspot Tickets Snapshots"
+      tests:
+        - unique:
+            column_name: concat(id, valid_to)
+      columns:
+        - name: id
+          description: "The primary key for this table (however: not unique! as the same property may occur multiple times, once for each updated version)"
+          tests:
+              - not_null
+
+    - name: base_hs_line_items
+      description: "Hubspot Line items"
+      tests:
+        - unique:
+            column_name: concat(line_item_id, dbt_valid_from)
+      columns:
+        - name: line_item_id
+          description: "The primary key for this table (however: not unique! as the same property may occur multiple times, once for each updated version)"
+          tests:
+              - not_null

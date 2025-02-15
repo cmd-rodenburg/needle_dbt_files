@@ -1,0 +1,65 @@
+name: 'solytic_analytics'
+version: '2.0.0'
+require-dbt-version: [">=1.1.0", "<=1.2.1"]
+config-version: 2
+
+# This setting configures which "profile" dbt uses for this project.
+profile: 'solytic_snowflake'
+
+# These configurations specify where dbt should look for different types of files.
+# The `source-paths` config, for example, states that models in this project can be
+# found in the "models/" directory. You probably won't need to change these!
+model-paths: ["models"]
+analysis-paths: ["analysis"]
+test-paths: ["tests"]
+seed-paths: ["seed"]
+macro-paths: ["macros"]
+snapshot-paths: ["snapshots"]
+
+target-path: "target"  # directory which will store compiled SQL files
+clean-targets:         # directories to be removed by `dbt clean`
+    - "target"
+    - "dbt_packages"
+
+# Configuring models
+# Full documentation: https://docs.getdbt.com/docs/configuring-models
+models:
+  solytic_analytics:
+      # default for all models
+      +materialized: table
+      +schema: bin # ought to be overwritten
+
+      # make sure connections use the correct time zone e.g. for date casting
+      +sql_header: "ALTER SESSION SET TIMEZONE = 'Europe/Berlin';"
+
+      staging:
+        +schema: staging
+        +materialized: view
+
+      core:
+        +schema: core
+
+      datamart:
+        +schema: datamart
+        +materialized: view
+
+  pre-hook:
+  - "{{ dbt_snow_mask.create_masking_policy('sources')}}"
+  - "{{ dbt_snow_mask.create_masking_policy('models')}}"
+
+  post-hook:
+    - "{{ dbt_snow_mask.apply_masking_policy('models') }}"
+
+vars:
+  'gemma:dates:timezone': 'Europe/Berlin' # overwrite to get a different default value
+  'gemma:dates:enabled': true # overwrite this variable to enable the date model
+  'gemma:dates:start_date': '2000-01-01' # overwrite to get a different default value
+  'gemma:dates:end_date': '4000 day' # ca. 11 years after the current date
+  'gemma:dates:table': 'gemma_dates' # overwrite to get a different default value
+  'gemma:dates:schema': 'gemma_dbt_utils' # overwrite to get a different default value
+  use_common_masking_policy_schema_only: "True"   #common masking policy schema is used in the same database as your model
+  common_masking_policy_schema: "GDPR"      #schema name for creating masking policies
+
+sources:
+  solytic_analytics:
+    +enabled: true

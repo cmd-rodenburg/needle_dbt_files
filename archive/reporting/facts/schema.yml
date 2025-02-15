@@ -1,0 +1,198 @@
+version: 2
+
+models:
+
+    - name: fact_company_feature_requests
+      description: Lists all feature requests for each company.
+      tests:
+        - unique:
+            column_name: concat(company_id, feature, feature_need_type)
+      columns:
+        - name: company_id
+          tests:
+            - not_null
+        - name: feature
+          tests:
+            - not_null
+        - name: feature_description_type
+          tests:
+            - not_null
+        - name: feature_need_type
+          tests:
+            - not_null
+
+    - name: fact_daily_snapshot_company_feature_requests
+      description: "Contains each feature request for each company on each day since company creation."
+      tests:
+        - unique:
+            column_name: concat(snap_id, feature, feature_need_type)
+      columns:
+        - name: snap_id
+          tests:
+            - not_null
+        - name: valid_date
+          tests:
+            - not_null
+        - name: company_id
+          tests:
+            - not_null
+        - name: feature
+          tests:
+            - not_null
+        - name: feature_description_type
+          tests:
+            - not_null
+        - name: feature_need_type
+          tests:
+            - not_null
+
+    - name: fact_daily_snapshot_deals
+      description: "Contains each deal once for each day since deal creation until the current date."
+      tests:
+        - unique:
+            column_name: concat(id, valid_date)
+      columns:
+        - name: snap_id
+          description: Primary key - Use this ID to join with snap_id of fact_daily_snapshot_feature_requests
+          tests:
+            - unique
+            - not_null
+        - name: id
+          tests:
+            - not_null
+        - name: valid_date
+          tests:
+            - not_null
+
+    - name: fact_daily_snapshot_tickets
+      description: "Contains each ticket once for each day since deal creation until the current date."
+      tests:
+        - unique:
+            column_name: concat(id, valid_date)
+      columns:
+        - name: snap_id
+          description: Primary key - Use this ID to join with snap_id of fact_daily_snapshot_feature_requests
+          tests:
+            - unique
+            - not_null
+        - name: id
+          tests:
+            - not_null
+        - name: valid_date
+          tests:
+            - not_null
+
+    - name: fact_deal_cohorts_monthly
+      description: Cohorts (monthly).
+      columns:
+        - name: _id
+          tests:
+            - not_null
+            - unique
+
+    - name: fact_deal_cohorts_weekly
+      description: Cohorts (weekly).
+      columns:
+        - name: _id
+          tests:
+            - not_null
+            - unique
+
+    - name: fact_deal_stage_progression
+      description: For each deal, when did it enter which stage for the first time?
+      tests:
+        - unique:
+            column_name: concat(deal_id, stage_id)
+      columns:
+        - name: deal_id
+          tests:
+            - not_null
+        - name: stage_id
+          tests:
+            - not_null
+        - name: stage_entered_at
+          tests:
+            - not_null
+        - name: pipeline_id
+          tests:
+            - not_null
+        - name: stage_name
+          tests:
+            - not_null
+
+    - name: fact_deals
+      description: "Hubspot Deals"
+      columns:
+        - name: id
+          description: "The primary key for this table"
+          meta: # lightdash test
+            metrics:
+              number_of_deals:
+                type: count
+          tests:
+              - unique
+              - not_null
+        - name: business_type
+          description: Well, duh
+        - name: portfolio_size_capacity
+        - name: amount
+          meta:
+            metrics:
+              avg_amount:
+                type: average
+              total_amount:
+                type: sum
+
+    - name: fact_feature_requests
+      description: Lists all feature requests for each company.
+      tests:
+        - unique:
+            column_name: concat(company_id, feature)
+      columns:
+        - name: company_id
+          tests:
+            - not_null
+        - name: feature
+          tests:
+            - not_null
+
+    - name: fact_tickets
+      description: Hubspot Tickets
+      columns:
+        - name: id
+          tests:
+            - not_null
+            - unique
+
+    - name: fact_subscriptions
+      description: Subscriptions
+      tests:
+        - dbt_utils.expression_is_true:
+            expression: "contract_start_date < contract_end_date"
+            severity: 'warn' # alerts to data quality issues
+      columns:
+        - name: subscription_id
+          description: Hubspot deal ID
+          tests:
+            - not_null
+            - unique
+        - name: sevdesk_customer_id
+        - name: hubspot_company_id
+          tests:
+            - relationships:
+                to: ref('base_hs_companies')
+                field: id
+        - name: contract_start_date
+        - name: contract_start_date
+        - name: monthly_amount
+          tests:
+            - dbt_utils.expression_is_true:
+                expression: "> 0"
+                severity: 'warn' #alerts to data quality issues
+
+    - name: fact_recurring_revenue_daily
+      columns:
+        - name: date_company_id
+          tests:
+            - unique
+            - not_null
