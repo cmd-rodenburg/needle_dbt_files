@@ -1,0 +1,49 @@
+version: 2
+
+models:
+
+## FLATFILES
+
+  - name: staging_flatfiles_booked_revenue
+    columns:
+      - name: DATE_KEY
+        tests:
+          - row_count:
+              above: 0
+
+  - name: staging_flatfiles_ledgers_booked
+    columns:
+      - name: DATE_KEY
+        tests:
+          - row_count:
+              above: 0
+
+  - name: staging_flatfiles_personnel_expenses
+    columns:
+      - name: EMPLOYEE_NAME
+        tests:
+          - row_count:
+              above: 0
+        meta:
+          masking_policy: mp_encrypt_pii
+
+  - name: staging_flatfiles_portals_solytic_1
+    columns:
+      - name: SITE_ID
+        tests:
+          - row_count:
+              above: 0
+
+  - name: staging_flatfiles_portals_suntrol
+    columns:
+      - name: SITE_ID
+        tests:
+          - row_count:
+              above: 0
+
+  - name: staging_flatfiles_target
+    columns:
+      - name: DATE_KEY
+        tests:
+          - row_count:
+              above: 0

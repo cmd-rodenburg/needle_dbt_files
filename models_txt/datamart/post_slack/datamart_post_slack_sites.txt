@@ -1,0 +1,70 @@
+
+WITH signed AS (
+
+    SELECT
+        COMPANY_SK
+        , SUM(SINGLE_SITES)                 AS SIGNED_SITES
+        , SUM(VOLUME_BASED_MWP)             AS SIGNED_MWP
+        , TRUE								AS ACTIVE_DEAL
+    FROM {{ ref('core_dim_deal') }}
+    WHERE ACTIVE_INDICATOR = TRUE
+        AND DEAL_STAGE_NAME = 'Won'
+        AND CURRENT_DATE BETWEEN CONTRACT_START_DATE AND CONTRACT_END_DATE
+    GROUP BY COMPANY_SK
+
+)
+, upsell AS (
+
+    SELECT
+    	rc.COMPANY_SK
+    	, BOOLOR_AGG(IFF(rc.CHANGE_INDICATOR
+			AND rc.VALID_FROM >= DATEADD(MONTH,-1,CURRENT_DATE), TRUE, FALSE)) 	AS LINE_ITEM_CHANGE_INDICATOR
+    	, MAX(rc.VALID_FROM) 													AS MAX_VALID_FROM
+    FROM {{ ref('core_fact_revenue_contracted') }} rc
+    LEFT JOIN {{ ref('core_dim_deal') }} cdd USING (DEAL_STAGE_SK)
+    WHERE rc.ACTIVE_INDICATOR = TRUE
+        AND cdd.DEAL_STAGE_NAME = 'Won'
+    GROUP BY rc.COMPANY_SK
+    HAVING LINE_ITEM_CHANGE_INDICATOR = TRUE
+)
+, actual AS (
+
+	SELECT
+		COMPANY_SK
+		, ROUND(SUM(CAPACITY/1000),3)                                           ::NUMBER(18,3)  AS TOTAL_CAPACITY
+		, IFNULL(SUM(IFF(CAPACITY >= 200,CAPACITY,0))/1000,0)		            ::NUMBER(18,3)  AS ACTUAL_CAPACITY
+		, IFNULL(COUNT(IFF(CAPACITY < 200, SITE_SK, NULL)),0)	                ::NUMBER(18,0)	AS ACTUAL_SITES
+		, SUM(IFF(CREATE_DATE > DATEADD(month, -1, CURRENT_DATE), 1, 0))        ::NUMBER(18,0) 	AS SITES_LAST_MONTH
+		, SUM(IFF(CREATE_DATE > DATEADD(month, -1, CURRENT_DATE)
+			AND LIVE_SITE, 1, 0)) 					                            ::NUMBER(18,0)	AS SITES_LAST_MONTH_LIVE
+		, ROUND(IFNULL(SUM(IFF(LIVE_SITE, CAPACITY,0))/1000,0),3)               ::NUMBER(18,3) 	AS LIVE_CAPACITY
+	FROM {{ ref('core_dim_site') }} si
+	WHERE PORTAL = 'Solytic 2.0'
+	GROUP BY COMPANY_SK
+
+)
+
+SELECT
+    cdc.COMPANY_NAME
+    , a.TOTAL_CAPACITY
+    , IFNULL(s.SIGNED_MWP,0)			                            AS SIGNED_CAPACITY
+    , a.ACTUAL_CAPACITY
+    , IFNULL(s.SIGNED_SITES,0)                              		AS SIGNED_SITES
+    , a.ACTUAL_SITES
+    , a.LIVE_CAPACITY
+    , ROUND(GREATEST(a.ACTUAL_CAPACITY
+        - IFNULL(s.SIGNED_MWP,0),0),3)	      ::NUMBER(18,3)	    AS CAPACITY_OVER
+    , GREATEST(a.ACTUAL_SITES
+        - IFNULL(s.SIGNED_SITES,0) ,0) 		  ::NUMBER(18,0)	    AS SITES_OVER
+    , IFNULL(s.ACTIVE_DEAL, FALSE)                					AS ACTIVE_DEAL
+    , a.SITES_LAST_MONTH
+    , a.SITES_LAST_MONTH_LIVE
+    , IFNULL(u.LINE_ITEM_CHANGE_INDICATOR, FALSE)                   AS LINE_ITEM_CHANGE_INDICATOR
+    , u.MAX_VALID_FROM
+FROM actual a
+LEFT JOIN signed s ON a.COMPANY_SK = s.COMPANY_SK
+FULL OUTER JOIN upsell u ON a.COMPANY_SK = u.COMPANY_SK
+LEFT JOIN {{ ref('core_dim_company') }} cdc ON IFNULL(a.COMPANY_SK,u.COMPANY_SK) = cdc.COMPANY_SK
+WHERE LOWER(COMPANY_NAME) NOT LIKE '%solytic%'
+
+

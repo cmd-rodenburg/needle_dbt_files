@@ -1,0 +1,31 @@
+
+SELECT
+    INVOICE_NUMBER
+    , fri.DEAL_SK
+    , cdc.COMPANY_NAME
+    , ROUND(SUM(fri.TOTAL_AMOUNT),0) ::NUMBER(18,0)       AS NET_AMOUNT
+    , fri.DATE_KEY
+    , fri.INVOICE_PERIOD_FROM
+    , fri.INVOICE_PERIOD_UNTIL
+    , fri.PAID_INDICATOR
+    , fri.DUE_DATE
+    , DATEDIFF(DAY, fri.DUE_DATE, CURRENT_DATE )        AS DAYS_OVER_DUE
+    , IFF(fri.DUNNING_LEVEL = 1, 2, NULL)               AS DUNNING_LEVEL
+FROM {{ ref('core_fact_revenue_invoiced') }} fri
+LEFT JOIN {{ ref('core_dim_company') }} cdc USING (COMPANY_SK)
+WHERE fri.DUE_DATE < CURRENT_DATE
+    AND fri.PAID_INDICATOR = FALSE
+    AND fri.DUE_DATE > '2022-07-01'::DATE
+    --NOTE: PARTIALLY PAID INVOICE WHICH IS "OK" LIKE THIS
+    AND fri.INVOICE_NUMBER != 'RE-4353'
+GROUP BY
+    fri.INVOICE_NUMBER
+    , fri.DEAL_SK
+    , cdc.COMPANY_NAME
+    , fri.DATE_KEY
+    , fri.INVOICE_PERIOD_FROM
+    , fri.INVOICE_PERIOD_UNTIL
+    , fri.PAID_INDICATOR
+    , fri.DUE_DATE
+    , fri.DUNNING_LEVEL
+Having DAYS_OVER_DUE > 7

@@ -1,0 +1,17 @@
+version: 2
+
+models:
+
+## SEVDESK
+  - name: staging_sevdesk_contacts
+    description: Contains information on Sevdesk contacts
+    columns:
+      - name: CONTACT_NAME_SECONDARY
+        meta:
+          masking_policy: mp_encrypt_pii
+      - name: CONTACT_NAME
+        meta:
+          masking_policy: mp_encrypt_pii
+      - name: BANK_IBAN
+        meta:
+          masking_policy: mp_encrypt_pii

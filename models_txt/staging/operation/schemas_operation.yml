@@ -1,0 +1,17 @@
+version: 2
+
+models:
+
+## OPERATIONAL
+  - name: staging_operation_users
+    description: Contains information on users of the operational product
+    columns:
+      - name: USERNAME
+        meta:
+          masking_policy: mp_encrypt_pii
+  - name: staging_operation_datasources
+    description: Datasources from the Solytic 2.0 portal
+    columns:
+      - name: DATA_SOURCE_ID
+        tests:
+          - unique

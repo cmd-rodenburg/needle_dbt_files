@@ -1,0 +1,122 @@
+version: 2
+
+models:
+
+  - name: core_dim_company
+    description: Contains information on Hubspot companies
+    quote: true
+    columns:
+      - name: company_id
+        tests:
+          - dbt_expectations.expect_column_values_to_be_unique:
+              row_condition: "company_id != -1"
+      - name: operational_id
+        tests:
+          - unique
+
+  - name: core_dim_deal
+    description: Contains information on Hubspot companies
+    tests:
+      - valid_from_and_to_dates
+      - dbt_expectations.expect_column_pair_values_A_to_be_greater_than_B:
+          column_A: VALID_FROM
+          column_B: CREATE_DATE
+          or_equal: True
+    columns:
+      - name: deal_id
+        tests:
+          - not_null
+          - valid_from_and_to_dates_gap
+      - name: deal_stage_sk
+        tests:
+          - unique
+      - name: VALID_FROM
+        tests:
+          - not_null
+      - name: VALID_TO
+        tests:
+          - not_null
+      - name: ACTIVE_INDICATOR
+        tests:
+          - not_null
+
+  - name: core_dim_owner
+    description: Contains information on Hubspot owners
+    tests:
+      - valid_from_and_to_dates
+    columns:
+      - name: owner_sk
+        tests:
+          - unique
+      - name: OWNER_ID
+        tests:
+          - valid_from_and_to_dates_gap
+        meta:
+          masking_policy: mp_encrypt_pii_numbers
+      - name: EMPLOYEE_NAME
+        meta:
+          masking_policy: mp_encrypt_pii_customer_success
+      - name: TERMINATION_REASON
+        meta:
+          masking_policy: mp_encrypt_pii
+      - name: EMAIL
+        meta:
+          masking_policy: mp_encrypt_pii
+      - name: TERMINATION_REASON
+        meta:
+          masking_policy: mp_encrypt_pii
+      - name: GROSS_SALARY
+        meta:
+          masking_policy: mp_encrypt_pii_numbers
+      - name: SOCIAL_SECURITY
+        meta:
+          masking_policy: mp_encrypt_pii_numbers
+      - name: VALID_FROM
+        tests:
+          - not_null
+      - name: VALID_TO
+        tests:
+          - not_null
+      - name: ACTIVE_INDICATOR
+        tests:
+          - not_null
+
+  - name: core_dim_user
+    description: Contains information on Hubspot contact and Operational users
+    columns:
+      - name: user_sk
+        tests:
+          - unique
+          - not_null
+
+  - name: core_dim_site
+    description: Contains information on Hubspot contact and Operational users
+    columns:
+      - name: SITE_SK
+        tests:
+          - unique
+
+  - name: core_dim_ticket
+    description: Contains information on Hubspot tickets
+    columns:
+      - name: ticket_id
+        tests:
+          - not_null
+          - valid_from_and_to_times_gap
+      - name: ticket_stage_sk
+        tests:
+          - unique
+      - name: VALID_FROM
+        tests:
+          - not_null
+      - name: VALID_TO
+        tests:
+          - not_null
+      - name: ACTIVE_INDICATOR
+        tests:
+          - not_null
+    tests:
+      - dbt_expectations.expect_column_pair_values_A_to_be_greater_than_B:
+          column_A: VALID_FROM
+          column_B: CREATE_DATE
+          or_equal: True

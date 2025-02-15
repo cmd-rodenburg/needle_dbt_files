@@ -1,0 +1,111 @@
+version: 2
+
+models:
+
+## HUBSPOT
+  - name: staging_hubspot_companies
+    description: Contains information on Hubspot companies
+    columns:
+      - name: COMPANY_ID
+        tests:
+          - not_null
+
+  - name: staging_hubspot_deals
+    description: Contains information on Hubspot deals
+    tests:
+      - valid_from_and_to_dates
+    columns:
+      - name: DEAL_ID
+        tests:
+          - not_null
+          - multiple_active_indicators
+          - valid_from_and_to_dates_gap
+      - name: VALID_FROM
+        tests:
+          - not_null
+      - name: VALID_TO
+        tests:
+          - not_null
+      - name: ACTIVE_INDICATOR
+        tests:
+          - not_null
+
+  - name: staging_hubspot_tickets
+    description: Contains information on Hubspot tickets
+    tests:
+      - valid_from_and_to_dates
+    columns:
+      - name: TICKET_ID
+        tests:
+          - not_null
+          - multiple_active_indicators
+          - valid_from_and_to_dates_gap
+      - name: VALID_FROM
+        tests:
+          - not_null
+      - name: VALID_TO
+        tests:
+          - not_null
+      - name: ACTIVE_INDICATOR
+        tests:
+          - not_null
+
+  - name: staging_hubspot_contacts
+    description: Contains information on Hubspot contacts
+    columns:
+      - name: HUBSPOT_CONTACT_ID
+        tests:
+          - unique
+      - name: OPERATIONAL_USER_ID
+        tests:
+          - unique
+
+  - name: staging_hubspot_engagements
+    description: Contains information on Hubspot engagements
+    columns:
+      - name: ENGAGEMENT_ID
+        tests:
+          - not_null
+
+  - name: staging_hubspot_owners
+    description: Contains information on Hubspot owners
+    columns:
+      - name: OWNER_ID
+        tests:
+          - not_null
+      - name: EMAIL
+        meta:
+          masking_policy: mp_encrypt_pii
+      - name: FIRST_NAME
+        meta:
+          masking_policy: mp_encrypt_pii
+      - name: EMPLOYEE_NAME
+        meta:
+          masking_policy: mp_encrypt_pii
+      - name: LAST_NAME
+        meta:
+          masking_policy: mp_encrypt_pii
+
+  - name: staging_hubspot_line_items
+    description: Contains information on Hubspot line items
+    columns:
+      - name: LINE_ITEM_ID
+        tests:
+          - not_null
+          - valid_from_and_to_dates_gap
+      - name: VALID_FROM
+        tests:
+          - not_null
+      - name: VALID_TO
+        tests:
+          - not_null
+      - name: ACTIVE_INDICATOR
+        tests:
+          - not_null
+
+  - name: staging_hubspot_pipelines
+    description: Contains information on Hubspot pipelines
+    columns:
+      - name: PIPELINE_ID
+        tests:
+          - not_null
